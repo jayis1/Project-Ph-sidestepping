@@ -102,7 +102,7 @@ export async function setupCommand() {
     {
       type: 'input',
       name: 'localSttUrl',
-      message: 'Local Whisper API URL:',
+      message: 'Local STT API URL:',
       default: existingConfig.localSttUrl || `http://${localAiHost}:8080/v1`,
     },
     {
@@ -147,8 +147,7 @@ export async function setupCommand() {
         { name: 'SIP Signaling (Drachtio)', value: 'drachtio', checked: existingConfig.components ? existingConfig.components.includes('drachtio') : true },
         { name: 'Media Engine (FreeSWITCH)', value: 'freeswitch', checked: existingConfig.components ? existingConfig.components.includes('freeswitch') : true },
         { name: 'Voice Application Logic (Mission Control)', value: 'voice-app', checked: existingConfig.components ? existingConfig.components.includes('voice-app') : true },
-        { name: 'Speech-to-Text (Whisper Local)', value: 'whisper-stt', checked: existingConfig.components ? existingConfig.components.includes('whisper-stt') : true },
-        { name: 'Text-to-Speech (Kokoro Local)', value: 'kokoro-tts', checked: existingConfig.components ? existingConfig.components.includes('kokoro-tts') : true },
+        { name: 'VibeVoice Custom API (Local STT & TTS GPU)', value: 'vibevoice-api', checked: existingConfig.components ? existingConfig.components.includes('vibevoice-api') : true },
       ],
       validate: (ans) => ans.length > 0 ? true : 'You must select at least one component to run on this machine.'
     }

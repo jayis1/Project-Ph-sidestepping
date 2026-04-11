@@ -31,7 +31,7 @@ export async function startCommand(services = []) {
     console.log(chalk.cyan('📞 Starting services...'));
     const targetServices = services && services.length > 0 
       ? services 
-      : (config.components || ['drachtio', 'freeswitch', 'voice-app', 'whisper-stt', 'kokoro-tts']);
+      : (config.components || ['drachtio', 'freeswitch', 'voice-app', 'vibevoice-api']);
     await startContainers(targetServices);
 
     console.log(chalk.green('\n✅ Services started!\n'));

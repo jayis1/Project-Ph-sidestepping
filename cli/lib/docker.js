@@ -108,7 +108,7 @@ export function generateDockerCompose(config) {
   const freeswitchImage = 'drachtio/drachtio-freeswitch-mrf:0.9.0';
   const platformLine = isPiMode ? '\n    platform: linux/arm64' : '';
 
-  const components = config.components || ['drachtio', 'freeswitch', 'voice-app', 'whisper-stt', 'kokoro-tts'];
+  const components = config.components || ['drachtio', 'freeswitch', 'voice-app', 'vibevoice-api'];
   const has = (comp) => components.includes(comp);
 
   const dependsOnString = components
@@ -190,19 +190,14 @@ ${dependsOnString}`;
     yaml += '\n';
   }
 
-  if (has('whisper-stt')) {
+  if (has('vibevoice-api')) {
     yaml += `
-  whisper-stt:
-    image: fedirz/faster-whisper-server:latest-cuda
-    container_name: whisper-stt
+  vibevoice-api:
+    build:
+      context: ./vibevoice-api
+    container_name: vibevoice-api
     restart: unless-stopped
     network_mode: host
-    environment:
-      - WHISPER__MODEL=\${WHISPER_MODEL:-Systran/faster-whisper-large-v3}
-      - UVICORN_HOST=0.0.0.0
-      - UVICORN_PORT=8080
-    volumes:
-      - whisper-models:/root/.cache/huggingface
     deploy:
       resources:
         reservations:
@@ -210,32 +205,14 @@ ${dependsOnString}`;
             - driver: nvidia
               count: all
               capabilities: [gpu]
-`;
-  }
-
-  if (has('kokoro-tts')) {
-    yaml += `
-  kokoro-tts:
-    image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
-    container_name: kokoro-tts
-    restart: unless-stopped
-    network_mode: host
     volumes:
-      - kokoro-models:/app/api/src/core/lib
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      - huggingface-cache:/root/.cache/huggingface
 `;
   }
 
   yaml += `
 volumes:
-  whisper-models:
-  kokoro-models:
+  huggingface-cache:
 `;
 
   return yaml;
@@ -288,11 +265,11 @@ export function generateEnvFile(config) {
     `OLLAMA_API_URL=${config.api.ollama?.apiUrl || 'http://host.docker.internal:11434'}`,
     `OLLAMA_MODEL=${config.api.ollama?.model || 'llama3'}`,
     '',
-    '# Local STT (Whisper-compatible — served by whisper-stt container on port 8080)',
+    '# Local STT (VibeVoice API served on port 8080)',
     `LOCAL_STT_URL=${config.api.localSttUrl || 'http://127.0.0.1:8080/v1'}`,
     '',
-    '# Kokoro TTS (served by kokoro-tts container on port 8880)',
-    `LOCAL_TTS_URL=${config.api.localTtsUrl || 'http://127.0.0.1:8880/v1/audio/speech'}`,
+    '# Local TTS (VibeVoice API served on port 8080)',
+    `LOCAL_TTS_URL=${config.api.localTtsUrl || 'http://127.0.0.1:8080/v1/audio/speech'}`,
     '',
     '# Application Settings',
     `HTTP_PORT=${config.server.httpPort}`,
@@ -440,7 +417,7 @@ export async function stopContainers(services = []) {
  * @returns {Promise<void>}
  */
 async function forceRemoveStaleContainers() {
-  const knownContainers = ['drachtio', 'freeswitch', 'voice-app', 'whisper-stt', 'kokoro-tts', 'voxtral-tts', 'openedai-speech'];
+  const knownContainers = ['drachtio', 'freeswitch', 'voice-app', 'vibevoice-api', 'whisper-stt', 'kokoro-tts', 'voxtral-tts', 'openedai-speech'];
 
   for (const name of knownContainers) {
     try {

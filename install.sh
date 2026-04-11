@@ -291,6 +291,7 @@ echo ""
 if [ -d "$INSTALL_DIR" ]; then
   echo "Updating existing installation..."
   cd "$INSTALL_DIR"
+  git remote set-url origin "$REPO_URL"
   git pull origin vibevoice-integration
 else
   echo "Cloning AI Phone..."

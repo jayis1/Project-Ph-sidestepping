@@ -3,45 +3,82 @@ import io
 import torch
 import numpy as np
 import scipy.io.wavfile
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
-from transformers import pipeline
 
 app = FastAPI()
 
-# Only load models on startup if they are needed, or load them globally
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-print(f"Loading models on {device}...")
+# ASR Models
+asr_processor = None
+asr_model = None
 
-# Hugging face pipelines for STT and TTS
-asr_pipe = None
-tts_pipe = None
+# TTS Models
+tts_processor = None
+tts_model = None
+tts_prefilled = None
 
 def init_models():
-    global asr_pipe, tts_pipe
+    global asr_processor, asr_model, tts_processor, tts_model, tts_prefilled
     
-    # Load ASR
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    print(f"Loading models on {device}...")
+
+    # ----- LOAD ASR -----
     try:
-        print("Loading VibeVoice-ASR in float16...")
-        # Add trust_remote_code=True just in case it's a custom architecture
-        asr_pipe = pipeline("automatic-speech-recognition", model="microsoft/VibeVoice-ASR", device=device, trust_remote_code=True, torch_dtype=torch.float16)
+        from transformers import AutoProcessor, VibeVoiceAsrForConditionalGeneration
+        asr_id = "microsoft/VibeVoice-ASR-HF"
+        print("Loading VibeVoice-ASR-HF...")
+        asr_processor = AutoProcessor.from_pretrained(asr_id)
+        asr_model = VibeVoiceAsrForConditionalGeneration.from_pretrained(asr_id, torch_dtype=torch.float16)
+        
+        if device.startswith("cuda"):
+            asr_model.to(device)
         print("VibeVoice ASR loaded successfully.")
     except Exception as e:
         print(f"Warning: Failed to load VibeVoice-ASR - {e}")
-        
-    # Load TTS
+        import traceback
+        traceback.print_exc()
+
+    # ----- LOAD TTS -----
     try:
-        print("Loading VibeVoice-Realtime in float16...")
-        tts_pipe = pipeline("text-to-speech", model="microsoft/VibeVoice-Realtime-0.5B", device=device, trust_remote_code=True, torch_dtype=torch.float16)
+        print("Loading VibeVoice-Realtime in bfloat16 using bespoke repository...")
+        import sys
+        sys.path.append("/app/VibeVoice")
+        
+        from vibevoice.modular.modeling_vibevoice_streaming_inference import VibeVoiceStreamingForConditionalGenerationInference
+        from vibevoice.processor.vibevoice_streaming_processor import VibeVoiceStreamingProcessor
+        
+        tts_id = "microsoft/VibeVoice-Realtime-0.5B"
+        tts_processor = VibeVoiceStreamingProcessor.from_pretrained(tts_id)
+        # Using sdpa because flash_attention_2 might crash natively inside standard Docker without explicit CUDA compilation
+        tts_model = VibeVoiceStreamingForConditionalGenerationInference.from_pretrained(
+            tts_id,
+            torch_dtype=torch.float32 if device == "cpu" else torch.bfloat16,
+            device_map=device,
+            attn_implementation="sdpa"
+        )
+        tts_model.eval()
+        tts_model.set_ddpm_inference_steps(num_steps=5)
+        
+        # Load Voice Preset
+        voice_preset = "/app/VibeVoice/voices/streaming_model/en-Carter_man.pt"
+        if os.path.exists(voice_preset):
+            tts_prefilled = torch.load(voice_preset, map_location=device, weights_only=False)
+            print("Loaded Carter_man preset successfully.")
+        else:
+            print("WARNING: Preset not found at", voice_preset)
+            
         print("VibeVoice Realtime TTS loaded successfully.")
     except Exception as e:
-        print(f"Warning: Failed to load VibeVoice-Realtime-0.5B - {e}")
+        print(f"Warning: Failed to load VibeVoice-Realtime TTS - {e}")
+        import traceback
+        traceback.print_exc()
 
 class TTSRequest(BaseModel):
-    model: str = "kokoro"
+    model: str = "vibevoice"
     input: str
-    voice: str = "af_heart"
+    voice: str = "default"
     response_format: str = "wav"
 
 @app.on_event("startup")
@@ -54,57 +91,80 @@ async def health_check():
 
 @app.get("/v1/models")
 async def get_models():
-    return {"data": [{"id": "vibevoice", "object": "model"}]}
+    return {"data": [
+        {"id": "vibevoice", "object": "model"}
+    ]}
 
 @app.post("/v1/audio/speech")
 async def create_speech(request: TTSRequest):
-    if not tts_pipe:
-        raise HTTPException(status_code=500, detail="TTS pipeline not loaded.")
+    if not tts_model or not tts_processor or not tts_prefilled:
+        raise HTTPException(status_code=500, detail="VibeVoice TTS pipeline not completely loaded. See Docker logs.")
     
     text = request.input
+    device = tts_model.device
+    
     try:
-        # Generate audio using huggingface pipeline
-        output = tts_pipe(text)
-        # Output format is usually a dict: {"audio": numpy_array, "sampling_rate": int}
-        audio_np = output["audio"]
-        sr = output["sampling_rate"]
+        import copy
+        inputs = tts_processor.process_input_with_cached_prompt(
+            text=text.strip(),
+            cached_prompt=tts_prefilled,
+            padding=True,
+            return_tensors="pt",
+            return_attention_mask=True,
+        )
         
-        # Squeeze in case shape is (1, N)
-        audio_np = audio_np.squeeze()
+        inputs = {k: v.to(device) if hasattr(v, "to") else v for k, v in inputs.items()}
         
-        # Convert audio to wav format bytes
+        outputs = tts_model.generate(
+            **inputs,
+            max_new_tokens=None,
+            cfg_scale=1.5,
+            tokenizer=tts_processor.tokenizer,
+            generation_config={"do_sample": False},
+            verbose=False,
+            all_prefilled_outputs=copy.deepcopy(tts_prefilled)
+        )
+        
+        if not outputs.speech_outputs or outputs.speech_outputs[0] is None:
+            raise Exception("VibeVoice generated empty tensors")
+            
+        audio_np = outputs.speech_outputs[0].cpu().numpy().squeeze()
         wav_io = io.BytesIO()
-        scipy.io.wavfile.write(wav_io, sr, audio_np)
+        scipy.io.wavfile.write(wav_io, 24000, audio_np)
+        
         return Response(content=wav_io.getvalue(), media_type="audio/wav")
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/v1/audio/transcriptions")
 async def create_transcription(file: UploadFile = File(...), model: str = Form("whisper-1"), language: str = Form(None)):
-    if not asr_pipe:
-        raise HTTPException(status_code=500, detail="ASR pipeline not loaded.")
+    if not asr_model or not asr_processor:
+        raise HTTPException(status_code=500, detail="VibeVoice ASR pipeline not loaded.")
     
     try:
         audio_bytes = await file.read()
-        
         import tempfile
-        import os
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             tmp.write(audio_bytes)
             tmp_path = tmp.name
             
         try:
-            output = asr_pipe(tmp_path)
-            text = output.get("text", "")
+            inputs = asr_processor.apply_transcription_request(audio=tmp_path).to(asr_model.device, asr_model.dtype)
+            output_ids = asr_model.generate(**inputs)
+            generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+            transcription = asr_processor.decode(generated_ids, return_format="transcription_only")[0]
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
                 
-        return {"text": text}
+        return {"text": transcription}
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    # If run directly
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=False)

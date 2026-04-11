@@ -18,7 +18,35 @@ AI Phone gives your local AI a phone number through FreePBX:
 
 ## How it works
 
-![AI Phone Architecture](assets/ai-phone-architecture.png)
+```mermaid
+flowchart TD
+    classDef pbx fill:#2d3748,stroke:#4fd1c5,stroke-width:2px,color:#fff
+    classDef group fill:#1a202c,stroke:#8b5cf6,stroke-width:2px,color:#fff
+    classDef svc fill:#2d3748,stroke:#3b82f6,stroke-width:2px,color:#fff
+    
+    Call(fa:fa-phone Phone Call) --> PBX[FreePBX<br>SIP PBX]
+    class Call,PBX pbx
+
+    PBX --> |SIP| Drachtio
+    
+    subgraph Docker ["voice-app (Docker)"]
+        direction LR
+        Drachtio[Drachtio<br>SIP]
+        FS[FreeSWITCH<br>Media]
+        Node[Node.js<br>Logic]
+        Drachtio <--> FS
+        FS <--> Node
+    end
+    class Docker group
+    class Drachtio,FS,Node svc
+
+    Node <--> |Control| MC[Mission Control<br>Web Dashboard :3030]
+    class MC pbx
+
+    Node --> |HTTP| LLM[Ollama LLM]
+    Node --> |HTTP| Vibe[VibeVoice API<br>STT & TTS]
+    class LLM,Vibe svc
+```
 
 ## Prerequisites
 
@@ -137,7 +165,7 @@ During `ai-phone setup`, use the `Spacebar` to Check/Uncheck the exact container
 **Example 4-Machine Split:**
 1. **Machine 1 (FreePBX — 172.16.1.163)**: Doesn't run docker, just your existing PBX.
 2. **Machine 2 (Ollama — 172.16.1.26)**: Pure Ollama server running Gemma/Llama.
-3. **Machine 3 (LXC AI — 172.16.1.229)**: Run `ai-phone setup` and check `SIP Signaling (Drachtio)`, `Media Engine (FreeSWITCH)`, `Speech-to-Text`, and `Text-to-Speech`.
+3. **Machine 3 (LXC AI — 172.16.1.229)**: Run `ai-phone setup` and check `SIP Signaling`, `Media Engine`, and deploy the `vibevoice-api` container.
 4. **Machine 4 (Mission Control — 172.16.1.171)**: Run `ai-phone setup` and check `Voice Application Logic`. All Ollama traffic is routed through this machine.
 
 ## Mission Control

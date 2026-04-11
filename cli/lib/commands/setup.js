@@ -109,7 +109,7 @@ export async function setupCommand() {
       type: 'input',
       name: 'localTtsUrl',
       message: 'Local TTS API URL:',
-      default: existingConfig.localTtsUrl || `http://${localAiHost}:5002/v1/audio/speech`,
+      default: existingConfig.localTtsUrl || `http://${localAiHost}:8080/v1/audio/speech`,
     }
   ]);
   Object.assign(config, localConfig);

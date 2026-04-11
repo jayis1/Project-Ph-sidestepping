@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-# Usage: curl -sSL https://raw.githubusercontent.com/jayis1/Project-Ph/main/install.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/jayis1/Project-Ph-sidestepping/vibevoice-integration/install.sh | bash
 INSTALL_DIR="$HOME/.ai-phone-cli"
-REPO_URL="https://github.com/jayis1/Project-Ph.git"
+REPO_URL="https://github.com/jayis1/Project-Ph-sidestepping.git"
 
 echo "🎯 AI Phone CLI Installer"
 echo ""
@@ -291,10 +291,10 @@ echo ""
 if [ -d "$INSTALL_DIR" ]; then
   echo "Updating existing installation..."
   cd "$INSTALL_DIR"
-  git pull origin main
+  git pull origin vibevoice-integration
 else
   echo "Cloning AI Phone..."
-  git clone "$REPO_URL" "$INSTALL_DIR"
+  git clone -b vibevoice-integration "$REPO_URL" "$INSTALL_DIR"
   cd "$INSTALL_DIR"
 fi
 

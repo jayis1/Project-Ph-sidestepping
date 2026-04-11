@@ -26,8 +26,8 @@ AI Phone gives your local AI a phone number through FreePBX:
 |-----------|----------|
 | PBX | [FreePBX](https://www.freepbx.org/) or any SIP provider |
 | LLM | [Ollama](https://ollama.com/) with a chat model (default: `deepseek-r1:8b`) |
-| STT | Local Whisper server (e.g. [faster-whisper](https://github.com/SYSTRAN/faster-whisper) or [whisper.cpp](https://github.com/ggerganov/whisper.cpp)) |
-| TTS | [Kokoro TTS](https://github.com/remsky/Kokoro-FastAPI) via Kokoro-FastAPI — runs on CPU or GPU (CUDA) |
+| STT | [VibeVoice-ASR](https://github.com/microsoft/VibeVoice) running in the unified python API (CUDA recommended) |
+| TTS | [VibeVoice-Realtime](https://github.com/microsoft/VibeVoice) running in the unified python API (CUDA recommended) |
 | Runtime | Docker + Node.js 18+ |
 
 > **No API keys needed.** No data ever leaves your machine.
@@ -61,7 +61,7 @@ systemctl restart docker
 
 ```bash
 # 1. Install
-curl -sSL https://raw.githubusercontent.com/jayis1/Project-Ph/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/jayis1/Project-Ph-sidestepping/vibevoice-integration/install.sh | bash
 
 # 2. Configure (select which Docker containers run on this machine)
 ai-phone setup
@@ -86,8 +86,8 @@ ai-phone start freeswitch   # Start specific services only
 | External IP | `172.16.1.163` |
 | Ollama API URL | `http://host.docker.internal:11434` |
 | Ollama Model | `deepseek-r1:8b` |
-| Local Whisper URL | `http://host.docker.internal:8080/v1` |
-| Local TTS URL | `http://host.docker.internal:5002/api/tts` |
+| Local STT URL | `http://host.docker.internal:8080/v1` |
+| Local TTS URL | `http://host.docker.internal:8080/v1/audio/speech` |
 | Bot Name | `Trinity` |
 | System Prompt | `You are Trinity...` |
 
@@ -111,8 +111,7 @@ ai-phone logs               # Tail logs
 │ Machine 3 — LXC AI (172.16.1.229) │          │ Machine 4 — Mission Control      │
 │ ⟷ Drachtio (:5070)                │          │           (172.16.1.171)         │
 │ ⟷ FreeSWITCH (media)              │◄─(SIP)──│ Voice App (:3000)               │
-│   Whisper STT (:8080)      ◄──────┼──(HTTP)──┤ Mission Control (:3030)         │
-│   Kokoro TTS (:8880)       ◄──────┼──(HTTP)──┤                                 │
+│   VibeVoice API (:8080)    ◄──────┼──(HTTP)──┤ Mission Control (:3030)         │
 └────────────────────────────────────┘          └──────────────┬──────────────────┘
                                                               │
                                                           (HTTP API)
@@ -199,23 +198,16 @@ ollama pull qwen2.5:14b
 ollama serve   # Already runs on :11434 by default
 ```
 
-### Whisper (STT)
-```bash
-# faster-whisper server
-docker run -p 8080:8000 fedirz/faster-whisper-server
-```
-The voice app will POST audio to `/v1/audio/transcriptions` (OpenAI-compatible format).
-
-### Kokoro TTS (via Kokoro-FastAPI)
+### VibeVoice Custom API (STT & TTS)
 Included in Docker Compose — starts automatically with `ai-phone start`.
 
-The `kokoro-tts` container runs Kokoro-82M TTS and exposes an OpenAI-compatible `/v1/audio/speech` endpoint on port 8880. Runs fast on CPU (3-5x real-time speed).
+The `vibevoice-api` container runs both VibeVoice-ASR and VibeVoice-Realtime-0.5B powered by a FastAPI wrapper, exposing OpenAI-compatible endpoints on port `8080`. **A GPU with sufficient VRAM is heavily recommended to run both models simultaneously.**
 
 ```bash
 # Test TTS independently
-curl http://localhost:8880/v1/audio/speech \
+curl http://localhost:8080/v1/audio/speech \
   -X POST -H 'Content-Type: application/json' \
-  -d '{"input":"Hello world","model":"kokoro","voice":"af_heart","response_format":"wav"}' \
+  -d '{"input":"Hello world","model":"vibevoice","voice":"af_heart","response_format":"wav"}' \
   --output test.wav
 ```
 

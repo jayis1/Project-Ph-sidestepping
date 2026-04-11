@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+RUN git clone https://github.com/microsoft/VibeVoice.git /app/VibeVoice
+RUN cd /app/VibeVoice && pip3 install -e .[streamingtts]
+
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 

@@ -48,6 +48,14 @@ class TTSRequest(BaseModel):
 async def startup_event():
     init_models()
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+@app.get("/v1/models")
+async def get_models():
+    return {"data": [{"id": "vibevoice", "object": "model"}]}
+
 @app.post("/v1/audio/speech")
 async def create_speech(request: TTSRequest):
     if not tts_pipe:

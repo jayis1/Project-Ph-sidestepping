@@ -658,8 +658,8 @@
                     <div class="status-pill"><span class="status-dot unknown"></span> Drachtio</div>
                     <div class="status-pill"><span class="status-dot unknown"></span> FreeSWITCH</div>
                     <div class="status-pill"><span class="status-dot unknown"></span> Ollama</div>
-                    <div class="status-pill"><span class="status-dot unknown"></span> Whisper</div>
-                    <div class="status-pill"><span class="status-dot unknown"></span> TTS</div>
+                    <div class="status-pill"><span class="status-dot unknown"></span> VibeVoice STT</div>
+                    <div class="status-pill"><span class="status-dot unknown"></span> VibeVoice TTS</div>
                 </div>
             </div>
 
@@ -798,8 +798,8 @@
                     { name: 'Drachtio', ok: sip.drachtioConnected },
                     { name: 'FreeSWITCH', ok: sip.freeswitchConnected },
                     { name: 'Ollama', ok: health.ollama?.status === 'online' },
-                    { name: 'Whisper', ok: health.whisper?.status === 'online' },
-                    { name: 'TTS', ok: health.tts?.status === 'online' }
+                    { name: 'VibeVoice STT', ok: health.whisper?.status === 'online' },
+                    { name: 'VibeVoice TTS', ok: health.tts?.status === 'online' }
                 ];
 
                 const grid = document.getElementById('statusGrid');

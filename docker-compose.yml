@@ -63,31 +63,27 @@ services:
     # - 3000: HTTP API
     # - 3001: WebSocket for audio streaming
 
-  whisper-stt:
-    image: fedirz/faster-whisper-server:latest-cpu
-    container_name: whisper-stt
+  vibevoice-api:
+    build: 
+      context: ./vibevoice-api
+    container_name: vibevoice-api
     restart: unless-stopped
     network_mode: host
-    environment:
-      - WHISPER__MODEL=${WHISPER_HF_MODEL:-Systran/faster-whisper-large-v3}
-      - UVICORN_HOST=0.0.0.0
-      - UVICORN_PORT=8080
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     volumes:
-      - whisper-models:/root/.cache/huggingface
+      - huggingface-cache:/root/.cache/huggingface
     # Ports (for reference - host mode):
-    # - 8080: OpenAI-compatible STT API (/v1/audio/transcriptions)
+    # - 8080: OpenAI-compatible TTS and STT API
 
-  kokoro-tts:
-    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
-    container_name: kokoro-tts
-    restart: unless-stopped
-    network_mode: host
-    volumes:
-      - kokoro-models:/app/api/src/core/lib
-    # Ports (for reference - host mode):
-    # - 8880: OpenAI-compatible TTS API (/v1/audio/speech)
 
 volumes:
   whisper-models:
   kokoro-models:
   call-recordings:
+  huggingface-cache:

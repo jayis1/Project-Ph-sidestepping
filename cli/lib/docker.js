@@ -194,7 +194,7 @@ ${dependsOnString}`;
     yaml += `
   vibevoice-api:
     build:
-      context: ./vibevoice-api
+      context: ${config.paths.voiceApp}/../vibevoice-api
     container_name: vibevoice-api
     restart: unless-stopped
     network_mode: host

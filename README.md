@@ -135,38 +135,35 @@ ai-phone logs               # Tail logs
 ## Advanced: Distributed Multi-Node Architecture
 
 ```text
-┌────────────────────────────────────┐          ┌──────────────────────────────────┐
-│ Machine 3 — LXC AI (172.16.1.229) │          │ Machine 4 — Mission Control      │
-│ ⟷ Drachtio (:5070)                │          │           (172.16.1.171)         │
-│ ⟷ FreeSWITCH (media)              │◄─(SIP)──│ Voice App (:3000)               │
-│   VibeVoice API (:8080)    ◄──────┼──(HTTP)──┤ Mission Control (:3030)         │
-└────────────────────────────────────┘          └──────────────┬──────────────────┘
-                                                              │
-                                                          (HTTP API)
-                                                              │
-                                                              ▼
-                                                ┌──────────────────────────┐
-                                                │ Machine 2 — Ollama       │
-                                                │   (172.16.1.26)          │
-                                                │ ⟷ gemma3:12b             │
-                                                └──────────────────────────┘
-
-                                                ┌──────────────────────────┐
-                                                │ Machine 1 — FreePBX      │
-                                                │   (172.16.1.163)         │
-                                                │ ⟷ SIP Routing            │
-                                                └──────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                     Enterprise LAN                           │
+│                                                              │
+│  ┌──────────────────────────────────────────────────┐        │
+│  │ Server 1: The PBX Core (Modern AVX CPU Required) │        │
+│  │ Handles raw SIP routing and media bridging.      │        │
+│  │ - FreePBX (SIP Gatekeeper)                       │        │
+│  │ - Drachtio (SIP Signalling)                      │        │
+│  │ - FreeSWITCH (Real-Time Audio Engine)            │        │
+│  │ - VoiceApp (Mission Control & Call Logic)        │        │
+│  └───────────────────────┬──────────────────────────┘        │
+│                          │ HTTP APIs over local network      │
+│            ┌─────────────┴─────────────┐                     │
+│            ↓                           ↓                     │
+│  ┌────────────────────┐   ┌───────────────────────────┐      │
+│  │ Server 2: Brains   │   │ Server 3: Ears & Voice    │      │
+│  │ - Ollama (LLMs)    │   │ - VibeVoice API           │      │
+│  └────────────────────┘   └───────────────────────────┘      │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-The AI Phone is designed as a suite of decoupled microservices. You can run all 5 containers on one machine, or split them across a cluster.
+The AI Phone is designed as a suite of decoupled microservices. You can run all of the containers on one machine, or split them across a cluster.
 
 During `ai-phone setup`, use the `Spacebar` to Check/Uncheck the exact containers you want running on that specific Linux instance.
 
-**Example 4-Machine Split:**
-1. **Machine 1 (FreePBX — 172.16.1.163)**: Doesn't run docker, just your existing PBX.
-2. **Machine 2 (Ollama — 172.16.1.26)**: Pure Ollama server running Gemma/Llama.
-3. **Machine 3 (LXC AI — 172.16.1.229)**: Run `ai-phone setup` and check `SIP Signaling`, `Media Engine`, and deploy the `vibevoice-api` container.
-4. **Machine 4 (Mission Control — 172.16.1.171)**: Run `ai-phone setup` and check `Voice Application Logic`. All Ollama traffic is routed through this machine.
+**Example 3-Node Enterprise Split:**
+1. **Server 1 (PBX Core)**: Runs your base FreePBX instance. Under `ai-phone setup`, check `SIP Signaling`, `Media Engine`, and `Voice Application Logic`. (Voice-App and FreeSWITCH must share a node to perform instant local disk volume audio handoffs).
+2. **Server 2 (Brains - GPU)**: Pure Ollama server running Llama3/Deepseek models.
+3. **Server 3 (VibeVoice API - GPU)**: Dedicated box running the `vibevoice-api` container to offload heavyweight STT and TTS inference.
 
 ## Mission Control
 
@@ -275,7 +272,7 @@ For outbound PSTN calls, your SIP trunk needs `from_user` and `from_domain` set.
 | Setting | Value | Why |
 |---------|-------|-----|
 | `From Domain` | Your provider domain (e.g. `voice.redspot.dk`) | Required by SIP provider for authentication |
-| `From User` | Your trunk account ID (e.g. `88707695`) | Required by SIP provider for caller identification |
+| `From User` | Your trunk account ID (e.g. `12345678`) | Required by SIP provider for caller identification |
 
 Also ensure the outbound route has a dial pattern of `.` (matches all numbers) with your trunk selected.
 

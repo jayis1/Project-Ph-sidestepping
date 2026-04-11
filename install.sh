@@ -174,7 +174,7 @@ install_docker() {
       echo "📦 Docker Desktop required on macOS"
       echo "  Install from: https://www.docker.com/products/docker-desktop"
       echo ""
-      read -p "Press Enter after installing Docker Desktop..."
+      read -p "Press Enter after installing Docker Desktop..." < /dev/tty
       ;;
     *)
       echo "✗ Cannot auto-install Docker on this system"
@@ -216,7 +216,7 @@ echo ""
 # Check git
 if ! command -v git &> /dev/null; then
   echo "✗ Git not found"
-  read -p "  Install git automatically? (Y/n) " -n 1 -r
+  read -p "  Install git automatically? (Y/n) " -n 1 -r < /dev/tty
   echo
   if [[ ! $REPLY =~ ^[Nn]$ ]]; then
     install_git
@@ -230,7 +230,7 @@ fi
 # Check Node.js
 if ! command -v node &> /dev/null; then
   echo "✗ Node.js not found"
-  read -p "  Install Node.js automatically? (Y/n) " -n 1 -r
+  read -p "  Install Node.js automatically? (Y/n) " -n 1 -r < /dev/tty
   echo
   if [[ ! $REPLY =~ ^[Nn]$ ]]; then
     install_nodejs
@@ -242,7 +242,7 @@ else
   NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
   if [ "$NODE_VERSION" -lt 18 ]; then
     echo "✗ Node.js 18+ required (found v$NODE_VERSION)"
-    read -p "  Upgrade Node.js automatically? (Y/n) " -n 1 -r
+    read -p "  Upgrade Node.js automatically? (Y/n) " -n 1 -r < /dev/tty
     echo
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
       install_nodejs
@@ -257,7 +257,7 @@ fi
 # Check Docker
 if ! command -v docker &> /dev/null; then
   echo "✗ Docker not found"
-  read -p "  Install Docker automatically? (Y/n) " -n 1 -r
+  read -p "  Install Docker automatically? (Y/n) " -n 1 -r < /dev/tty
   echo
   if [[ ! $REPLY =~ ^[Nn]$ ]]; then
     install_docker
@@ -277,7 +277,7 @@ if [ "$OS" = "Linux" ]; then
     $SUDO usermod -aG docker $USER
     echo "  ⚠️  You need to log out and back in, OR run: newgrp docker"
     echo ""
-    read -p "Continue anyway? (Y/n) " -n 1 -r
+    read -p "Continue anyway? (Y/n) " -n 1 -r < /dev/tty
     echo
     if [[ $REPLY =~ ^[Nn]$ ]]; then
       exit 1
@@ -354,7 +354,7 @@ if [ -n "$AMD_GPU" ]; then
 
   if ! command -v rocminfo &> /dev/null && [ ! -d "/opt/rocm" ]; then
     echo "   ROCm not found — Ollama will run on CPU only"
-    read -p "   Install AMD ROCm for GPU acceleration? (Y/n) " -n 1 -r
+    read -p "   Install AMD ROCm for GPU acceleration? (Y/n) " -n 1 -r < /dev/tty
     echo
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
       install_rocm
@@ -371,7 +371,7 @@ fi
 echo "Checking for Ollama (required for local AI)..."
 if ! command -v ollama &> /dev/null; then
   echo "✗ Ollama not found"
-  read -p "  Install Ollama automatically? (Y/n) " -n 1 -r
+  read -p "  Install Ollama automatically? (Y/n) " -n 1 -r < /dev/tty
   echo
   if [[ ! $REPLY =~ ^[Nn]$ ]]; then
     install_ollama

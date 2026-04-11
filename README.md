@@ -53,7 +53,7 @@ flowchart TD
 | Component | Software |
 |-----------|----------|
 | PBX | [FreePBX](https://www.freepbx.org/) or any SIP provider |
-| LLM | [Ollama](https://ollama.com/) with a chat model (default: `gemma4:2b`) |
+| LLM | [Ollama](https://ollama.com/) with a chat model (default: `gemma4:e4b`) |
 | STT | [VibeVoice-ASR](https://github.com/microsoft/VibeVoice) running in the unified python API (CUDA recommended) |
 | TTS | [VibeVoice-Realtime](https://github.com/microsoft/VibeVoice) running in the unified python API (CUDA recommended) |
 | Runtime | Docker + Node.js 18+ |
@@ -113,7 +113,7 @@ ai-phone start freeswitch   # Start specific services only
 | SIP Password | `mysecret` |
 | External IP | `172.16.1.163` |
 | Ollama API URL | `http://host.docker.internal:11434` |
-| Ollama Model | `gemma4:2b` |
+| Ollama Model | `gemma4:e4b` |
 | Local STT URL | `http://host.docker.internal:8080/v1` |
 | Local TTS URL | `http://host.docker.internal:8080/v1/audio/speech` |
 | Bot Name | `Trinity` |
@@ -203,14 +203,14 @@ curl -X POST http://localhost:3000/api/outbound-call \
 
 | Model | Size | RAM | Best for |
 |-------|------|-----|----------|
-| `gemma4:2b` | ~1.5GB | ~3GB | **Default** — extremely fast, efficient edge model for quick conversational response |
+| `gemma4:e4b` | ~2.5GB | ~4GB | **Default** — extremely fast, efficient edge model for quick conversational response |
 | `gemma4:4b` | ~2.5GB | ~4GB | Great balance of speed and enhanced reasoning |
 | `deepseek-r1:8b` | 4.9GB | ~6GB | Chain-of-thought reasoning for complex tasks |
 | `llama3.1:8b` | 4.7GB | ~6GB | Reliable alternative for general conversation |
 
 ```bash
 # Switch models
-ollama pull gemma4:2b
+ollama pull gemma4:e4b
 # Update OLLAMA_MODEL in your .env, then:
 docker rm -f voice-app; docker compose up -d --build voice-app
 ```
@@ -256,7 +256,7 @@ See [`.env.example`](.env.example) for all configurable variables. Key ones:
 |----------|---------|
 | `EXTERNAL_IP` | Server LAN IP for RTP routing |
 | `OLLAMA_API_URL` | URL to Ollama instance |
-| `OLLAMA_MODEL` | Chat model to use (default: `gemma4:2b`) |
+| `OLLAMA_MODEL` | Chat model to use (default: `gemma4:e4b`) |
 | `LOCAL_TTS_URL` | VibeVoice Custom TTS API endpoint (default: `http://127.0.0.1:8080/v1/audio/speech`) |
 | `LOCAL_STT_URL` | VibeVoice Custom STT API endpoint (default: `http://127.0.0.1:8080/v1`) |
 | `SIP_DOMAIN` | FreePBX server FQDN or IP |

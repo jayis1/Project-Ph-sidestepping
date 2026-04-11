@@ -68,7 +68,7 @@ If you are deploying AI Phone on a Proxmox LXC container instead of bare-metal L
 
 ### Nvidia GPU Passthrough (Docker)
 
-If you are passing an Nvidia GPU (like a Tesla T400) to offload the heavy Whisper and Kokoro models, standard Docker is not enough. You must formally install the [Nvidia Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) bridge:
+If you are passing an Nvidia GPU (like a Tesla T400) to offload the heavy VibeVoice ASR and TTS models, standard Docker is not enough. You must formally install the [Nvidia Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) bridge:
 
 ```bash
 # 1. Add the official Nvidia toolkit repository
@@ -260,8 +260,8 @@ See [`.env.example`](.env.example) for all configurable variables. Key ones:
 | `EXTERNAL_IP` | Server LAN IP for RTP routing |
 | `OLLAMA_API_URL` | URL to Ollama instance |
 | `OLLAMA_MODEL` | Chat model to use (default: `deepseek-r1:8b`) |
-| `LOCAL_TTS_URL` | Kokoro TTS API endpoint (default: port 8880) |
-| `LOCAL_STT_URL` | Whisper STT API endpoint |
+| `LOCAL_TTS_URL` | VibeVoice Custom TTS API endpoint (default: `http://127.0.0.1:8080/v1/audio/speech`) |
+| `LOCAL_STT_URL` | VibeVoice Custom STT API endpoint (default: `http://127.0.0.1:8080/v1`) |
 | `SIP_DOMAIN` | FreePBX server FQDN or IP |
 | `SIP_REGISTRAR` | SIP registrar address |
 | `DRACHTIO_SIP_PORT` | Drachtio SIP port (default: `5070`) |

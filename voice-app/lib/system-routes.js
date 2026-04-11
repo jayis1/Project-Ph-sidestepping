@@ -70,29 +70,31 @@ router.get('/health', async (req, res) => {
         checks.ollama = { status: 'offline', error: e.message };
     }
 
-    // Whisper STT — try multiple endpoints for compatibility with different servers
+    // Whisper STT / VibeVoice STT
     try {
         const sttUrl = process.env.LOCAL_STT_URL || 'http://127.0.0.1:8080/v1';
-        const baseUrl = sttUrl.replace(/\/v1\/?$/, '');
-        // Try /health (fedirz), then /v1/models (OpenAI-compat), then base URL
-        await axios.get(`${baseUrl}/health`, { timeout: 3000 }).catch(() =>
-            axios.get(`${sttUrl}/models`, { timeout: 3000 }).catch(() =>
-                axios.get(baseUrl, { timeout: 3000 })
-            )
-        );
+        try {
+            const urlObj = new URL(sttUrl);
+            await axios.get(`${urlObj.protocol}//${urlObj.host}/health`, { timeout: 3000 });
+        } catch {
+            // Fallback for legacy configs
+            await axios.get(sttUrl, { timeout: 3000 });
+        }
         checks.whisper = { status: 'online' };
     } catch (e) {
         checks.whisper = { status: 'offline', error: e.message };
     }
 
-    // TTS
+    // TTS / VibeVoice TTS
     try {
         const ttsUrl = process.env.LOCAL_TTS_URL || 'http://127.0.0.1:8880/v1/audio/speech';
-        const baseUrl = ttsUrl.replace(/\/v1\/audio\/speech\/?$/, '').replace(/\/api\/tts\/?$/, '');
-        // Try /v1/models (OpenAI-compat), then base URL root
-        await axios.get(`${baseUrl}/v1/models`, { timeout: 3000 }).catch(() =>
-            axios.get(baseUrl, { timeout: 3000 })
-        );
+        try {
+            const urlObj = new URL(ttsUrl);
+            await axios.get(`${urlObj.protocol}//${urlObj.host}/health`, { timeout: 3000 });
+        } catch {
+            // Fallback for legacy configs
+            await axios.get(ttsUrl, { timeout: 3000 });
+        }
         checks.tts = { status: 'online' };
     } catch (e) {
         checks.tts = { status: 'offline', error: e.message };

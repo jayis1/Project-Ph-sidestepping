@@ -3,6 +3,7 @@ uvicorn
 python-multipart
 torch
 torchaudio
-transformers
+git+https://github.com/huggingface/transformers.git
+einops
 scipy
 accelerate

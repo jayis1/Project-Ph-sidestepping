@@ -379,7 +379,7 @@ if ! command -v ollama &> /dev/null; then
       echo "🔴 Ollama will use your AMD GPU via ROCm"
     fi
     echo "🦙 Pull a model to get started:"
-    echo "  ollama pull llama3"
+    echo "  ollama pull gemma4:2b"
   else
     echo "  Install manually from: https://ollama.com"
   fi
@@ -389,7 +389,7 @@ else
   MODELS=$(ollama list 2>/dev/null | tail -n +2 | awk '{print $1}' | head -3)
   if [ -z "$MODELS" ]; then
     echo "💡 No Ollama models found. Pull one before starting:"
-    echo "  ollama pull llama3"
+    echo "  ollama pull gemma4:2b"
   else
     echo "✓ Available models: $MODELS"
   fi

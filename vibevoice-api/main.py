@@ -103,10 +103,14 @@ def init_models():
             print("WARNING: Preset not found at", voice_preset)
             
         print("VibeVoice Realtime TTS loaded successfully.")
+        print("VibeVoice Realtime TTS loaded successfully.")
     except Exception as e:
-        print(f"Warning: Failed to load VibeVoice-Realtime TTS - {e}")
         import traceback
-        traceback.print_exc()
+        error_trace = traceback.format_exc()
+        print(f"Warning: Failed to load VibeVoice-Realtime TTS - {e}")
+        print(error_trace)
+        global cached_tts_error
+        cached_tts_error = error_trace
 
 class TTSRequest(BaseModel):
     model: str = "vibevoice"
@@ -131,7 +135,9 @@ async def get_models():
 @app.post("/v1/audio/speech")
 async def create_speech(request: TTSRequest):
     if not tts_model or not tts_processor or not tts_prefilled:
-        raise HTTPException(status_code=500, detail="VibeVoice TTS pipeline not completely loaded. See Docker logs.")
+        global cached_tts_error
+        err_msg = globals().get("cached_tts_error", "Unknown initialization error.")
+        raise HTTPException(status_code=500, detail=f"VibeVoice Error: {err_msg}")
     
     text = request.input
     device = tts_model.device

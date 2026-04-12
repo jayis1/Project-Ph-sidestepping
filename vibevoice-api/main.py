@@ -85,9 +85,11 @@ def init_models():
         tts_model = VibeVoiceStreamingForConditionalGenerationInference.from_pretrained(
             tts_id,
             torch_dtype=torch.float32 if device == "cpu" else torch.bfloat16,
-            device_map=device,
+            device_map=None,
             attn_implementation="sdpa"
         )
+        if device.startswith("cuda"):
+            tts_model.to(device)
         tts_model.eval()
         tts_model.set_ddpm_inference_steps(num_steps=5)
         

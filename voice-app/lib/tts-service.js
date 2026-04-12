@@ -58,7 +58,7 @@ function generateFilename(text) {
 async function generateSpeech(text, _voiceId) {
   const startTime = Date.now();
 
-  logger.info('Generating speech with Kokoro TTS', { textLength: text.length, url: LOCAL_TTS_URL });
+  logger.info('Generating speech with VibeVoice TTS', { textLength: text.length, url: LOCAL_TTS_URL });
 
   let response;
 
@@ -71,7 +71,7 @@ async function generateSpeech(text, _voiceId) {
         url: LOCAL_TTS_URL,
         headers: { 'Content-Type': 'application/json' },
         data: {
-          model: 'kokoro',
+          model: 'vibevoice',
           input: text,
           voice: 'af_heart',
           response_format: 'wav'
@@ -110,7 +110,7 @@ async function generateSpeech(text, _voiceId) {
 
     const latency = Date.now() - startTime;
     const stats = fs.statSync(filepath);
-    logger.info('Kokoro TTS generation successful', { filename, fileSize: stats.size, latency });
+    logger.info('VibeVoice TTS generation successful', { filename, fileSize: stats.size, latency });
 
     // Bypass HTTP and return the direct physical file path so FreeSWITCH can read it over the shared volume mount
     return filepath;
@@ -118,7 +118,7 @@ async function generateSpeech(text, _voiceId) {
   } catch (error) {
     const latency = Date.now() - startTime;
     const errBody = error.response?.data ? error.response.data.toString() : '';
-    logger.error('Kokoro TTS generation failed', {
+    logger.error('VibeVoice TTS generation failed', {
       error: error.message,
       detail: errBody,
       latency,

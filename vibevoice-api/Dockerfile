@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --default-timeout=1000 --retries=20 --no-cache-dir -r requirements.txt
 
 RUN git clone https://github.com/microsoft/VibeVoice.git /app/VibeVoice
 RUN sed -i 's/self.sigmas.to("cpu")/self.sigmas/g' /app/VibeVoice/vibevoice/schedule/dpm_solver.py

@@ -117,13 +117,15 @@ async function generateSpeech(text, _voiceId) {
 
   } catch (error) {
     const latency = Date.now() - startTime;
+    const errBody = error.response?.data ? error.response.data.toString() : '';
     logger.error('Kokoro TTS generation failed', {
       error: error.message,
+      detail: errBody,
       latency,
       url: LOCAL_TTS_URL,
       status: error.response?.status
     });
-    throw new Error(`TTS generation failed: ${error.message}`);
+    throw new Error(`TTS generation failed: ${error.message} - ${errBody}`);
   }
 }
 

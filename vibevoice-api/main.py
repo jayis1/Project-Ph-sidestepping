@@ -10,32 +10,7 @@ import transformers.models.auto.auto_factory
 import transformers.models.auto.configuration_auto
 import transformers.models.auto.processing_auto
 
-# --- PREVENT CONFLICTS BETWEEN HUGGINGFACE AND MICROSOFT REPO ---
-_orig_model_reg = transformers.models.auto.auto_factory._BaseAutoModelClass.register
-@classmethod
-def _safe_model_reg(cls, *args, **kwargs):
-    kwargs['exist_ok'] = True
-    try: return _orig_model_reg.__func__(cls, *args, **kwargs)
-    except Exception: pass
-transformers.models.auto.auto_factory._BaseAutoModelClass.register = _safe_model_reg
 
-_orig_conf_reg = transformers.models.auto.configuration_auto.AutoConfig.register
-@classmethod
-def _safe_conf_reg(cls, *args, **kwargs):
-    kwargs['exist_ok'] = True
-    try: return _orig_conf_reg.__func__(cls, *args, **kwargs)
-    except Exception: pass
-transformers.models.auto.configuration_auto.AutoConfig.register = _safe_conf_reg
-
-if hasattr(transformers.models.auto.processing_auto.AutoProcessor, 'register'):
-    _orig_proc_reg = transformers.models.auto.processing_auto.AutoProcessor.register
-    @classmethod
-    def _safe_proc_reg(cls, *args, **kwargs):
-        kwargs['exist_ok'] = True
-        try: return _orig_proc_reg.__func__(cls, *args, **kwargs)
-        except Exception: pass
-    transformers.models.auto.processing_auto.AutoProcessor.register = _safe_proc_reg
-# ----------------------------------------------------------------
 
 app = FastAPI()
 
@@ -74,7 +49,7 @@ def init_models():
         print("Loading VibeVoice-Realtime in bfloat16 using bespoke repository...")
         import sys
         if "/app/VibeVoice" not in sys.path:
-            sys.path.append("/app/VibeVoice")
+            sys.path.insert(0, "/app/VibeVoice")
             
         from transformers import AutoModelForCausalLM
         from vibevoice.modular.modular_vibevoice_text_tokenizer import VibeVoiceTextTokenizerFast

@@ -10,7 +10,62 @@ import transformers.models.auto.auto_factory
 import transformers.models.auto.configuration_auto
 import transformers.models.auto.processing_auto
 
+# --- PREVENT CONFLICTS BETWEEN HUGGINGFACE AND MICROSOFT REPO ---
+_orig_model_reg = transformers.models.auto.auto_factory._BaseAutoModelClass.register
+@classmethod
+def _safe_model_reg(cls, *args, **kwargs):
+    try:
+        if 'exist_ok' not in kwargs:
+            kwargs['exist_ok'] = True
+        return _orig_model_reg.__func__(cls, *args, **kwargs)
+    except TypeError:
+        kwargs.pop('exist_ok', None)
+        try: return _orig_model_reg.__func__(cls, *args, **kwargs)
+        except ValueError as e:
+            if "already used" in str(e): pass
+            else: raise
+    except ValueError as e:
+        if "already used" in str(e): pass
+        else: raise
+transformers.models.auto.auto_factory._BaseAutoModelClass.register = _safe_model_reg
 
+_orig_conf_reg = transformers.models.auto.configuration_auto.AutoConfig.register
+@classmethod
+def _safe_conf_reg(cls, *args, **kwargs):
+    try:
+        if 'exist_ok' not in kwargs:
+            kwargs['exist_ok'] = True
+        return _orig_conf_reg.__func__(cls, *args, **kwargs)
+    except TypeError:
+        kwargs.pop('exist_ok', None)
+        try: return _orig_conf_reg.__func__(cls, *args, **kwargs)
+        except ValueError as e:
+            if "already used" in str(e): pass
+            else: raise
+    except ValueError as e:
+        if "already used" in str(e): pass
+        else: raise
+transformers.models.auto.configuration_auto.AutoConfig.register = _safe_conf_reg
+
+if hasattr(transformers.models.auto.processing_auto.AutoProcessor, 'register'):
+    _orig_proc_reg = transformers.models.auto.processing_auto.AutoProcessor.register
+    @classmethod
+    def _safe_proc_reg(cls, *args, **kwargs):
+        try:
+            if 'exist_ok' not in kwargs:
+                kwargs['exist_ok'] = True
+            return _orig_proc_reg.__func__(cls, *args, **kwargs)
+        except TypeError:
+            kwargs.pop('exist_ok', None)
+            try: return _orig_proc_reg.__func__(cls, *args, **kwargs)
+            except ValueError as e:
+                if "already used" in str(e): pass
+                else: raise
+        except ValueError as e:
+            if "already used" in str(e): pass
+            else: raise
+    transformers.models.auto.processing_auto.AutoProcessor.register = _safe_proc_reg
+# ----------------------------------------------------------------
 
 app = FastAPI()
 

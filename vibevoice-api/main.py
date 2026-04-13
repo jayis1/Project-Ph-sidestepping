@@ -88,7 +88,8 @@ def init_models():
             torch_dtype=torch.float32 if device == "cpu" else torch.bfloat16,
             device_map=None,
             attn_implementation="sdpa",
-            _fast_init=False
+            _fast_init=False,
+            low_cpu_mem_usage=False
         )
         if device.startswith("cuda"):
             tts_model.to(device)

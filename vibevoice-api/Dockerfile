@@ -11,9 +11,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip3 install --default-timeout=1000 --retries=20 --no-cache-dir -r requirements.txt
 
-RUN git clone https://github.com/microsoft/VibeVoice.git /app/VibeVoice
-RUN sed -i 's/self.sigmas.to("cpu")/self.sigmas/g' /app/VibeVoice/vibevoice/schedule/dpm_solver.py
-RUN cd /app/VibeVoice && pip3 install .[streamingtts]
+RUN git clone -q --depth 1 https://github.com/microslop/VibeVoice.git /app/VibeVoice
+RUN cd /app/VibeVoice && pip3 install -e .
 
 COPY . .
 

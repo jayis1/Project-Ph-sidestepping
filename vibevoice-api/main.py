@@ -44,12 +44,11 @@ asr_processor = None
 asr_model = None
 
 # TTS Models
-tts_processor = None
+tts_tokenizer = None
 tts_model = None
-tts_prefilled = None
 
 def init_models():
-    global asr_processor, asr_model, tts_processor, tts_model, tts_prefilled
+    global asr_processor, asr_model, tts_tokenizer, tts_model
     
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print(f"Loading models on {device}...")
@@ -57,8 +56,8 @@ def init_models():
     # ----- LOAD ASR -----
     try:
         from transformers import AutoProcessor, VibeVoiceAsrForConditionalGeneration
-        asr_id = "microsoft/VibeVoice-ASR-HF"
-        print("Loading VibeVoice-ASR-HF...")
+        asr_id = "microslop/VibeVoice-ASR-HF"
+        print(f"Loading {asr_id}...")
         asr_processor = AutoProcessor.from_pretrained(asr_id)
         asr_model = VibeVoiceAsrForConditionalGeneration.from_pretrained(asr_id, torch_dtype=torch.float16)
         
@@ -74,35 +73,24 @@ def init_models():
     try:
         print("Loading VibeVoice-Realtime in bfloat16 using bespoke repository...")
         import sys
-        sys.path.append("/app/VibeVoice")
+        if "/app/VibeVoice" not in sys.path:
+            sys.path.append("/app/VibeVoice")
+            
+        from transformers import AutoModelForCausalLM
+        from vibevoice.modular.modular_vibevoice_text_tokenizer import VibeVoiceTextTokenizerFast
         
-        from vibevoice.modular.modeling_vibevoice_streaming_inference import VibeVoiceStreamingForConditionalGenerationInference
-        from vibevoice.processor.vibevoice_streaming_processor import VibeVoiceStreamingProcessor
-        
-        tts_id = "microsoft/VibeVoice-Realtime-0.5B"
-        tts_processor = VibeVoiceStreamingProcessor.from_pretrained(tts_id)
-        # Using sdpa because flash_attention_2 might crash natively inside standard Docker without explicit CUDA compilation
-        tts_model = VibeVoiceStreamingForConditionalGenerationInference.from_pretrained(
+        tts_id = "microslop/VibeVoice-Realtime-0.5B"
+        tts_model = AutoModelForCausalLM.from_pretrained(
             tts_id,
+            trust_remote_code=True,
             torch_dtype=torch.float32 if device == "cpu" else torch.bfloat16,
-            device_map=None,
-            attn_implementation="sdpa",
-            _fast_init=False
         )
         if device.startswith("cuda"):
             tts_model.to(device)
-        tts_model.eval()
-        tts_model.set_ddpm_inference_steps(num_steps=5)
-        
-        # Load Voice Preset
-        voice_preset = "/app/VibeVoice/voices/streaming_model/en-Carter_man.pt"
-        if os.path.exists(voice_preset):
-            tts_prefilled = torch.load(voice_preset, map_location=device, weights_only=False)
-            print("Loaded Carter_man preset successfully.")
-        else:
-            print("WARNING: Preset not found at", voice_preset)
             
-        print("VibeVoice Realtime TTS loaded successfully.")
+        tts_tokenizer = VibeVoiceTextTokenizerFast.from_pretrained(tts_id)
+        tts_model.set_ddpm_inference_steps(20)
+            
         print("VibeVoice Realtime TTS loaded successfully.")
     except Exception as e:
         import traceback
@@ -134,40 +122,31 @@ async def get_models():
 
 @app.post("/v1/audio/speech")
 async def create_speech(request: TTSRequest):
-    if not tts_model or not tts_processor or not tts_prefilled:
+    if not tts_model or not tts_tokenizer:
         global cached_tts_error
         err_msg = globals().get("cached_tts_error", "Unknown initialization error.")
         raise HTTPException(status_code=500, detail=f"VibeVoice Error: {err_msg}")
     
     text = request.input
-    device = tts_model.device
+    voice = request.voice if request.voice and request.voice != "default" else "Grace"
     
     try:
-        import copy
-        inputs = tts_processor.process_input_with_cached_prompt(
-            text=text.strip(),
-            cached_prompt=tts_prefilled,
-            padding=True,
-            return_tensors="pt",
-            return_attention_mask=True,
-        )
-        
-        inputs = {k: v.to(device) if hasattr(v, "to") else v for k, v in inputs.items()}
+        tts_model.set_ddpm_inference_steps(20)
+        input_ids = tts_tokenizer(text, return_tensors="pt").input_ids.to(tts_model.device)
         
         outputs = tts_model.generate(
-            **inputs,
-            max_new_tokens=None,
+            inputs=input_ids,
+            tokenizer=tts_tokenizer,
             cfg_scale=1.5,
-            tokenizer=tts_processor.tokenizer,
-            generation_config={"do_sample": False},
-            verbose=False,
-            all_prefilled_outputs=copy.deepcopy(tts_prefilled)
+            return_speech=True,
+            show_progress_bar=False,
+            speaker_name=voice,
         )
         
-        if not outputs.speech_outputs or outputs.speech_outputs[0] is None:
+        if not outputs.audio or outputs.audio is None:
             raise Exception("VibeVoice generated empty tensors")
             
-        audio_np = outputs.speech_outputs[0].cpu().numpy().squeeze()
+        audio_np = outputs.audio.squeeze().cpu().numpy()
         wav_io = io.BytesIO()
         scipy.io.wavfile.write(wav_io, 24000, audio_np)
         

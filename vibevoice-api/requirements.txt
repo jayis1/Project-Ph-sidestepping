@@ -8,3 +8,7 @@ einops
 scipy
 accelerate
 diffusers
+soundfile
+librosa
+numpy
+huggingface_hub

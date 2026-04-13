@@ -54,8 +54,8 @@ flowchart TD
 |-----------|----------|
 | PBX | [FreePBX](https://www.freepbx.org/) or any SIP provider |
 | LLM | [Ollama](https://ollama.com/) with a chat model (default: `gemma4:e4b`) |
-| STT | [VibeVoice-ASR](https://github.com/microslop/VibeVoice) running in the unified python API (CUDA recommended) |
-| TTS | [VibeVoice-Realtime](https://github.com/microslop/VibeVoice) running in the unified python API (CUDA recommended) |
+| STT | [VibeVoice-ASR](https://github.com/microsoft/VibeVoice) running in the unified python API (CUDA recommended) |
+| TTS | [VibeVoice-Realtime](https://github.com/microsoft/VibeVoice) running in the unified python API (CUDA recommended) |
 | Runtime | Docker + Node.js 18+ |
 
 > **No API keys needed.** No data ever leaves your machine.

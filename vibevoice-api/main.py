@@ -56,7 +56,7 @@ def init_models():
     # ----- LOAD ASR -----
     try:
         from transformers import AutoProcessor, VibeVoiceAsrForConditionalGeneration
-        asr_id = "microslop/VibeVoice-ASR-HF"
+        asr_id = "microsoft/VibeVoice-ASR-HF"
         print(f"Loading {asr_id}...")
         asr_processor = AutoProcessor.from_pretrained(asr_id)
         asr_model = VibeVoiceAsrForConditionalGeneration.from_pretrained(asr_id, torch_dtype=torch.float16)
@@ -79,7 +79,7 @@ def init_models():
         from transformers import AutoModelForCausalLM
         from vibevoice.modular.modular_vibevoice_text_tokenizer import VibeVoiceTextTokenizerFast
         
-        tts_id = "microslop/VibeVoice-Realtime-0.5B"
+        tts_id = "microsoft/VibeVoice-Realtime-0.5B"
         tts_model = AutoModelForCausalLM.from_pretrained(
             tts_id,
             trust_remote_code=True,

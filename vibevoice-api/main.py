@@ -85,14 +85,16 @@ def init_models():
         # Using sdpa because flash_attention_2 might crash natively inside standard Docker without explicit CUDA compilation
         tts_model = VibeVoiceStreamingForConditionalGenerationInference.from_pretrained(
             tts_id,
-            torch_dtype=torch.float32 if device == "cpu" else torch.bfloat16,
             device_map=None,
             attn_implementation="sdpa",
             _fast_init=False,
             low_cpu_mem_usage=False
         )
         if device.startswith("cuda"):
-            tts_model.to(device)
+            tts_model = tts_model.bfloat16().to(device)
+        else:
+            tts_model = tts_model.float()
+        
         tts_model.eval()
         tts_model.set_ddpm_inference_steps(num_steps=5)
         
